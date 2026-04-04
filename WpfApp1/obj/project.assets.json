@@ -8,32 +8,24 @@
     "net10.0-windows7.0": []
   },
   "packageFolders": {
-    "C:\\Users\\Kishk\\.nuget\\packages\\": {},
-    "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages": {}
+    "C:\\Users\\User\\.nuget\\packages\\": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "E:\\projects\\CodenLms\\videoplayer\\WpfApp1\\WpfApp1\\WpfApp1.csproj",
+      "projectUniqueName": "C:\\Users\\User\\secureVideoPlayer\\WpfApp1\\WpfApp1.csproj",
       "projectName": "WpfApp1",
-      "projectPath": "E:\\projects\\CodenLms\\videoplayer\\WpfApp1\\WpfApp1\\WpfApp1.csproj",
-      "packagesPath": "C:\\Users\\Kishk\\.nuget\\packages\\",
-      "outputPath": "E:\\projects\\CodenLms\\videoplayer\\WpfApp1\\WpfApp1\\obj\\",
+      "projectPath": "C:\\Users\\User\\secureVideoPlayer\\WpfApp1\\WpfApp1.csproj",
+      "packagesPath": "C:\\Users\\User\\.nuget\\packages\\",
+      "outputPath": "C:\\Users\\User\\secureVideoPlayer\\WpfApp1\\obj\\",
       "projectStyle": "PackageReference",
-      "fallbackFolders": [
-        "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
-      ],
       "configFilePaths": [
-        "C:\\Users\\Kishk\\AppData\\Roaming\\NuGet\\NuGet.Config",
-        "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
-        "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
+        "C:\\Users\\User\\AppData\\Roaming\\NuGet\\NuGet.Config"
       ],
       "originalTargetFrameworks": [
         "net10.0-windows"
       ],
       "sources": {
-        "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
-        "C:\\Program Files\\dotnet\\library-packs": {},
         "https://api.nuget.org/v3/index.json": {}
       },
       "frameworks": {
@@ -52,7 +44,7 @@
         "auditLevel": "low",
         "auditMode": "all"
       },
-      "SdkAnalysisLevel": "10.0.100"
+      "SdkAnalysisLevel": "10.0.200"
     },
     "frameworks": {
       "net10.0-windows7.0": {
@@ -76,7 +68,7 @@
             "privateAssets": "none"
           }
         },
-        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.100/PortableRuntimeIdentifierGraph.json",
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.201/PortableRuntimeIdentifierGraph.json",
         "packagesToPrune": {
           "Microsoft.CSharp": "(,4.7.32767]",
           "Microsoft.VisualBasic": "(,10.4.32767]",

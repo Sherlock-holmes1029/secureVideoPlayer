@@ -4,28 +4,32 @@
         Title="Video Player"
         Height="500" Width="900"
         WindowStartupLocation="CenterScreen"
-        Background="#111"
+        Background="{DynamicResource PlayerBackgroundBrush}"
+        FontFamily="{DynamicResource PlayerFontFamily}"
         WindowStyle="None"
         ResizeMode="CanResize"
         PreviewKeyDown="Window_PreviewKeyDown"
         Focusable="True">
 
-    <!-- ========== STYLES ========== -->
     <Window.Resources>
-        <!-- General player buttons -->
+
+        <!-- ── Button style ── -->
         <Style x:Key="PlayerButtonStyle" TargetType="Button">
-            <Setter Property="Background" Value="#2D2D30"/>
-            <Setter Property="Foreground" Value="White"/>
-            <Setter Property="BorderBrush" Value="#3F3F46"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Padding" Value="10,4"/>
-            <Setter Property="Margin" Value="6,0"/>
-            <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Background"        Value="{DynamicResource PlayerButtonBgBrush}"/>
+            <Setter Property="Foreground"        Value="{DynamicResource PlayerButtonFgBrush}"/>
+            <Setter Property="BorderBrush"       Value="{DynamicResource PlayerButtonBgBrush}"/>
+            <Setter Property="BorderThickness"   Value="0"/>
+            <Setter Property="Padding"           Value="10,4"/>
+            <Setter Property="Margin"            Value="6,0"/>
+            <Setter Property="Cursor"            Value="Hand"/>
+            <Setter Property="FontSize"          Value="{DynamicResource PlayerFontSizeSm}"/>
+            <Setter Property="FontWeight"        Value="{DynamicResource PlayerButtonFontWeight}"/>
+            <Setter Property="FontFamily"        Value="{DynamicResource PlayerFontFamilyUi}"/>
+            <Setter Property="FocusVisualStyle"  Value="{x:Null}"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border CornerRadius="6"
+                        <Border CornerRadius="{DynamicResource PlayerButtonRadius}"
                                 Background="{TemplateBinding Background}"
                                 BorderBrush="{TemplateBinding BorderBrush}"
                                 BorderThickness="{TemplateBinding BorderThickness}"
@@ -35,10 +39,10 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Background" Value="#3A3A3E"/>
+                                <Setter Property="Background" Value="{DynamicResource PlayerButtonHoverBrush}"/>
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
-                                <Setter Property="Background" Value="#007ACC"/>
+                                <Setter Property="Background" Value="{DynamicResource PlayerPrimaryBrush}"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -46,49 +50,78 @@
             </Setter>
         </Style>
 
-        <!-- Main speed combo style (closed state) -->
+        <!-- ── Chrome button style (— □ X) — no border, no outline ── -->
+        <Style x:Key="ChromeButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="{DynamicResource PlayerTextPrimaryBrush}"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderThickness="0"
+                                Padding="0">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="{DynamicResource PlayerElevatedBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter Property="Background" Value="{DynamicResource PlayerBorderBrush}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- ── Speed combo style ── -->
         <Style x:Key="SpeedComboStyle" TargetType="ComboBox">
-            <Setter Property="FontSize" Value="13"/>
-            <Setter Property="Foreground" Value="White"/>
-            <Setter Property="Background" Value="#2D2D30"/>
-            <Setter Property="BorderBrush" Value="#3F3F46"/>
+            <Setter Property="FontSize"    Value="{DynamicResource PlayerFontSizeSm}"/>
+            <Setter Property="FontFamily"  Value="{DynamicResource PlayerFontFamilyUi}"/>
+            <Setter Property="Foreground"  Value="{DynamicResource PlayerButtonFgBrush}"/>
+            <Setter Property="Background"  Value="{DynamicResource PlayerButtonBgBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource PlayerButtonBorderBrush}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="HorizontalContentAlignment" Value="Center"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="ComboBox">
                         <Grid>
-                            <ToggleButton 
-                        Name="ToggleButton"
-                        Focusable="false"
-                        IsChecked="{Binding Path=IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
-                        ClickMode="Press">
+                            <ToggleButton Name="ToggleButton" Focusable="false"
+                                          IsChecked="{Binding Path=IsDropDownOpen, Mode=TwoWay,
+                                                      RelativeSource={RelativeSource TemplatedParent}}"
+                                          ClickMode="Press">
                                 <ToggleButton.Style>
                                     <Style TargetType="ToggleButton">
                                         <Setter Property="Template">
                                             <Setter.Value>
                                                 <ControlTemplate TargetType="ToggleButton">
-                                                    <Border 
-                                                x:Name="Border"
-                                                Background="#2D2D30"
-                                                BorderBrush="#3F3F46"
-                                                BorderThickness="1">
+                                                    <Border x:Name="Border"
+                                                            Background="{DynamicResource PlayerButtonBgBrush}"
+                                                            BorderBrush="{DynamicResource PlayerButtonBorderBrush}"
+                                                            BorderThickness="1"
+                                                            CornerRadius="{DynamicResource PlayerButtonRadius}">
                                                         <Grid>
                                                             <Grid.ColumnDefinitions>
-                                                                <ColumnDefinition />
-                                                                <ColumnDefinition Width="20" />
+                                                                <ColumnDefinition/>
+                                                                <ColumnDefinition Width="20"/>
                                                             </Grid.ColumnDefinitions>
-                                                            <Path 
-                                                        Grid.Column="1"
-                                                        Fill="White"
-                                                        HorizontalAlignment="Center"
-                                                        VerticalAlignment="Center"
-                                                        Data="M 0 0 L 4 4 L 8 0 Z"/>
+                                                            <Path Grid.Column="1"
+                                                                  Fill="{DynamicResource PlayerButtonFgBrush}"
+                                                                  HorizontalAlignment="Center"
+                                                                  VerticalAlignment="Center"
+                                                                  Data="M 0 0 L 4 4 L 8 0 Z"/>
                                                         </Grid>
                                                     </Border>
                                                     <ControlTemplate.Triggers>
                                                         <Trigger Property="IsMouseOver" Value="True">
-                                                            <Setter TargetName="Border" Property="Background" Value="#3E3E42"/>
+                                                            <Setter TargetName="Border" Property="Background"
+                                                                    Value="{DynamicResource PlayerButtonHoverBrush}"/>
                                                         </Trigger>
                                                     </ControlTemplate.Triggers>
                                                 </ControlTemplate>
@@ -98,34 +131,28 @@
                                 </ToggleButton.Style>
                             </ToggleButton>
 
-                            <ContentPresenter 
-                        Name="ContentSite"
-                        IsHitTestVisible="False"
-                        Content="{TemplateBinding SelectionBoxItem}"
-                        ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
-                        Margin="5,3,23,3"
-                        VerticalAlignment="Center"
-                        HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" />
+                            <ContentPresenter Name="ContentSite"
+                                              IsHitTestVisible="False"
+                                              Content="{TemplateBinding SelectionBoxItem}"
+                                              ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                                              Margin="5,3,23,3"
+                                              VerticalAlignment="Center"
+                                              HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"/>
 
-                            <Popup 
-                        Name="Popup"
-                        Placement="Bottom"
-                        IsOpen="{TemplateBinding IsDropDownOpen}"
-                        AllowsTransparency="True"
-                        Focusable="False"
-                        PopupAnimation="Slide">
-                                <Grid 
-                            Name="DropDown"
-                            SnapsToDevicePixels="True"
-                            MinWidth="{TemplateBinding ActualWidth}"
-                            MaxHeight="{TemplateBinding MaxDropDownHeight}">
-                                    <Border 
-                                Background="#2D2D30"
-                                BorderBrush="#3F3F46"
-                                BorderThickness="1"
-                                Margin="0,1,0,0">
+                            <Popup Name="Popup" Placement="Bottom"
+                                   IsOpen="{TemplateBinding IsDropDownOpen}"
+                                   AllowsTransparency="True" Focusable="False"
+                                   PopupAnimation="Slide">
+                                <Grid Name="DropDown" SnapsToDevicePixels="True"
+                                      MinWidth="{TemplateBinding ActualWidth}"
+                                      MaxHeight="{TemplateBinding MaxDropDownHeight}">
+                                    <Border Background="{DynamicResource PlayerButtonBgBrush}"
+                                            BorderBrush="{DynamicResource PlayerButtonBorderBrush}"
+                                            BorderThickness="1" Margin="0,1,0,0"
+                                            CornerRadius="{DynamicResource PlayerButtonRadius}">
                                         <ScrollViewer Margin="4,6,4,6" SnapsToDevicePixels="True">
-                                            <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Contained" />
+                                            <StackPanel IsItemsHost="True"
+                                                        KeyboardNavigation.DirectionalNavigation="Contained"/>
                                         </ScrollViewer>
                                     </Border>
                                 </Grid>
@@ -136,44 +163,104 @@
             </Setter>
         </Style>
 
-        <!-- Keep your existing DarkComboItemStyle as is -->
+        <!-- ── Slider style ── -->
+        <Style x:Key="PlayerSliderStyle" TargetType="Slider">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Slider">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto" MinHeight="{TemplateBinding MinHeight}"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <Track x:Name="PART_Track" Grid.Row="1">
+                                <Track.DecreaseRepeatButton>
+                                    <RepeatButton Command="Slider.DecreaseLarge">
+                                        <RepeatButton.Template>
+                                            <ControlTemplate TargetType="RepeatButton">
+                                                <Border Height="4" CornerRadius="2"
+                                                        Background="{DynamicResource PlayerPrimaryBrush}"/>
+                                            </ControlTemplate>
+                                        </RepeatButton.Template>
+                                    </RepeatButton>
+                                </Track.DecreaseRepeatButton>
+                                <Track.Thumb>
+                                    <Thumb>
+                                        <Thumb.Template>
+                                            <ControlTemplate TargetType="Thumb">
+                                                <Ellipse Width="14" Height="14"
+                                                         Fill="{DynamicResource PlayerButtonBgBrush}"
+                                                         Stroke="{DynamicResource PlayerPrimaryBrush}"
+                                                         StrokeThickness="2"/>
+                                            </ControlTemplate>
+                                        </Thumb.Template>
+                                    </Thumb>
+                                </Track.Thumb>
+                                <Track.IncreaseRepeatButton>
+                                    <RepeatButton Command="Slider.IncreaseLarge">
+                                        <RepeatButton.Template>
+                                            <ControlTemplate TargetType="RepeatButton">
+                                                <Border Height="4" CornerRadius="2"
+                                                        Background="{DynamicResource PlayerBorderBrush}"/>
+                                            </ControlTemplate>
+                                        </RepeatButton.Template>
+                                    </RepeatButton>
+                                </Track.IncreaseRepeatButton>
+                            </Track>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- ── Combo item style ── -->
         <Style x:Key="DarkComboItemStyle" TargetType="ComboBoxItem">
-            <Setter Property="Foreground" Value="White"/>
-            <Setter Property="Background" Value="#2D2D30"/>
-            <Setter Property="Padding" Value="4,2"/>
+            <Setter Property="Foreground"  Value="{DynamicResource PlayerButtonFgBrush}"/>
+            <Setter Property="Background"  Value="{DynamicResource PlayerButtonBgBrush}"/>
+            <Setter Property="FontFamily"  Value="{DynamicResource PlayerFontFamilyUi}"/>
+            <Setter Property="FontSize"    Value="{DynamicResource PlayerFontSizeSm}"/>
+            <Setter Property="Padding"     Value="4,2"/>
             <Setter Property="HorizontalContentAlignment" Value="Center"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="ComboBoxItem">
                         <Border x:Name="Bd"
-                        Background="{TemplateBinding Background}"
-                        Padding="{TemplateBinding Padding}">
+                                Background="{TemplateBinding Background}"
+                                Padding="{TemplateBinding Padding}">
                             <ContentPresenter HorizontalAlignment="Center"
-                                      VerticalAlignment="Center"/>
+                                              VerticalAlignment="Center"/>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsHighlighted" Value="True">
-                                <Setter TargetName="Bd" Property="Background" Value="#3A3A3E"/>
+                                <Setter TargetName="Bd" Property="Background"
+                                        Value="{DynamicResource PlayerButtonHoverBrush}"/>
                             </Trigger>
                             <Trigger Property="IsSelected" Value="True">
-                                <Setter TargetName="Bd" Property="Background" Value="#007ACC"/>
+                                <Setter TargetName="Bd" Property="Background"
+                                        Value="{DynamicResource PlayerPrimaryBrush}"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
         </Style>
+
     </Window.Resources>
 
-    <!-- ========== ROOT ========== -->
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition x:Name="TitleRow" Height="32"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition x:Name="NotesColumn" Width="0"/>
+        </Grid.ColumnDefinitions>
 
-        <!-- ========== TITLE BAR ========== -->
-        <Grid Grid.Row="0" Background="#1e1e1e" MouseDown="TitleBar_MouseDown">
+        <!-- ── Title bar (spans both columns) ── -->
+        <Grid Grid.Row="0" Grid.ColumnSpan="2" Background="{DynamicResource PlayerSurfaceBrush}"
+              MouseDown="TitleBar_MouseDown">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition/>
@@ -186,55 +273,58 @@
                         Click="OpenButton_Click"/>
                 <TextBlock x:Name="TitleText"
                            Text="Protected Video Player"
-                           Foreground="White"
+                           Foreground="{DynamicResource PlayerTextPrimaryBrush}"
+                           FontFamily="{DynamicResource PlayerFontFamilyUi}"
+                           FontSize="{DynamicResource PlayerFontSizeSm}"
                            Margin="10,0,0,0"
                            VerticalAlignment="Center"/>
             </StackPanel>
 
             <StackPanel Grid.Column="2" Orientation="Horizontal">
-                <Button Content="—" Width="40" Background="Transparent"
-                        Foreground="White" Click="MinimizeButton_Click"/>
-                <Button Content="□" Width="40" Background="Transparent"
-                        Foreground="White" Click="MaximizeButton_Click"/>
-                <Button Content="X" Width="40" Background="Transparent"
-                        Foreground="White" Click="CloseButton_Click"/>
+                <Button Content="—" Width="40" Height="32"
+                        Style="{StaticResource ChromeButtonStyle}"
+                        Click="MinimizeButton_Click"/>
+                <Button Content="□" Width="40" Height="32"
+                        Style="{StaticResource ChromeButtonStyle}"
+                        Click="MaximizeButton_Click"/>
+                <Button Content="X" Width="40" Height="32"
+                        Style="{StaticResource ChromeButtonStyle}"
+                        Click="CloseButton_Click"/>
             </StackPanel>
         </Grid>
 
-        <!-- ========== VIDEO AREA ========== -->
-        <Grid x:Name="ContentGrid"
-              Grid.Row="1"
-              Background="Black"
+        <!-- ── Video area ── -->
+        <Grid x:Name="ContentGrid" Grid.Row="1" Grid.Column="0" Background="Black"
               MouseMove="ContentGrid_MouseMove"
               MouseLeftButtonDown="ContentGrid_MouseLeftButtonDown">
 
             <MediaElement x:Name="VideoPlayer"
-                          LoadedBehavior="Manual"
-                          UnloadedBehavior="Stop"
+                          LoadedBehavior="Manual" UnloadedBehavior="Stop"
                           Stretch="Uniform"
                           MediaOpened="VideoPlayer_MediaOpened"
                           MediaEnded="VideoPlayer_MediaEnded"/>
 
-            <!-- Fullscreen Hint -->
+            <!-- Fullscreen hint -->
             <Border x:Name="FullscreenHint"
                     Background="#BB000000"
-                    CornerRadius="6"
+                    CornerRadius="{DynamicResource PlayerRadiusMd}"
                     Padding="8"
-                    HorizontalAlignment="Center"
-                    VerticalAlignment="Top"
-                    Margin="0,15"
-                    Visibility="Collapsed">
+                    HorizontalAlignment="Center" VerticalAlignment="Top"
+                    Margin="0,15" Visibility="Collapsed">
                 <TextBlock Text="Press F11 or Esc to exit fullscreen"
-                           Foreground="White"/>
+                           Foreground="White"
+                           FontFamily="{DynamicResource PlayerFontFamilyUi}"
+                           FontSize="{DynamicResource PlayerFontSizeSm}"/>
             </Border>
 
-            <!-- ========== CONTROL BAR ========== -->
+            <!-- ── Control bar ── -->
             <Border x:Name="ControlBar"
-                    Background="#CC222222"
-                    CornerRadius="10"
+                    Background="{DynamicResource PlayerControlBarBrush}"
+                    CornerRadius="{DynamicResource PlayerCardRadius}"
+                    BorderBrush="{DynamicResource PlayerCardBorderBrush}"
+                    BorderThickness="1"
                     Padding="12"
-                    VerticalAlignment="Bottom"
-                    HorizontalAlignment="Center"
+                    VerticalAlignment="Bottom" HorizontalAlignment="Center"
                     Margin="10">
                 <Grid>
                     <Grid.RowDefinitions>
@@ -242,73 +332,189 @@
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
 
-                    <!-- Progress -->
-                    <Slider x:Name="ProgressSlider"
-                            Grid.Row="0"
-                            Minimum="0"
-                            ValueChanged="ProgressSlider_ValueChanged"/>
+                    <Slider x:Name="ProgressSlider" Grid.Row="0"
+                            Minimum="0" Height="14"
+                            Style="{StaticResource PlayerSliderStyle}"
+                            ValueChanged="ProgressSlider_ValueChanged"
+                            PreviewMouseLeftButtonUp="ProgressSlider_MouseUp"/>
 
-                    <!-- Controls -->
-                    <StackPanel Grid.Row="1"
-                                Orientation="Horizontal"
-                                HorizontalAlignment="Center"
-                                Margin="0,8,0,0">
+                    <StackPanel Grid.Row="1" Orientation="Horizontal"
+                                HorizontalAlignment="Center" Margin="0,8,0,0">
 
-                        <Button Content="⏮"
-                                ToolTip="Back 10s (←)"
+                        <Button Content="⏮" ToolTip="Back 10s (←)"
                                 Click="SkipBackButton_Click"
                                 Style="{StaticResource PlayerButtonStyle}"/>
-
-                        <Button x:Name="PlayPauseButton"
-                                Content="▶"
+                        <Button x:Name="PlayPauseButton" Content="▶"
                                 ToolTip="Play / Pause (Space or K)"
                                 Click="PlayPauseButton_Click"
                                 Style="{StaticResource PlayerButtonStyle}"/>
-
-                        <Button Content="⏭"
-                                ToolTip="Forward 10s (→)"
+                        <Button Content="⏭" ToolTip="Forward 10s (→)"
                                 Click="SkipForwardButton_Click"
                                 Style="{StaticResource PlayerButtonStyle}"/>
 
-                        <!-- Volume -->
-                        <TextBlock x:Name="VolumeIcon"
-                                   Text=""
-                                   FontFamily="Segoe MDL2 Assets"
-                                   Foreground="White"
-                                   Margin="12,0,4,0"
-                                   Cursor="Hand"
+                        <TextBlock x:Name="VolumeIcon" Text="🔊"
+                                   FontSize="14"
+                                   Foreground="{DynamicResource PlayerTextPrimaryBrush}"
+                                   Margin="12,0,4,0" Cursor="Hand"
+                                   VerticalAlignment="Center"
                                    MouseLeftButtonUp="VolumeIcon_Click"
                                    ToolTip="Mute / Unmute (M)"/>
-                        <Slider x:Name="VolumeSlider"
-                                Width="100"
-                                Minimum="0"
-                                Maximum="100"
+                        <Slider x:Name="VolumeSlider" Width="100" Height="14"
+                                Minimum="0" Maximum="100"
+                                Style="{StaticResource PlayerSliderStyle}"
                                 ValueChanged="VolumeSlider_ValueChanged"
                                 ToolTip="Volume (↑ / ↓)"/>
                         <TextBlock x:Name="VolumePercentText"
-                                   Foreground="White"
-                                   Margin="6,0"
-                                   Text="50%"/>
+                                   Foreground="{DynamicResource PlayerTextPrimaryBrush}"
+                                   FontFamily="{DynamicResource PlayerFontFamilyUi}"
+                                   FontSize="{DynamicResource PlayerFontSizeSm}"
+                                   Margin="6,0" Text="50%"/>
 
-                        <!-- Speed -->
                         <TextBlock Text="Speed:"
-                                   Foreground="White"
-                                   Margin="12,0,4,0"
-                                   VerticalAlignment="Center"/>
-                        <ComboBox x:Name="SpeedComboBox"
-                                  Width="80"
+                                   Foreground="{DynamicResource PlayerTextPrimaryBrush}"
+                                   FontFamily="{DynamicResource PlayerFontFamilyUi}"
+                                   FontSize="{DynamicResource PlayerFontSizeSm}"
+                                   Margin="12,0,4,0" VerticalAlignment="Center"/>
+                        <ComboBox x:Name="SpeedComboBox" Width="80"
                                   Style="{StaticResource SpeedComboStyle}"
                                   ItemContainerStyle="{StaticResource DarkComboItemStyle}"
                                   SelectionChanged="SpeedComboBox_SelectionChanged"
-                                  ToolTip="Playback speed">
+                                  ToolTip="Playback speed">    
                             <ComboBoxItem Content="0.5x"/>
                             <ComboBoxItem Content="1x" IsSelected="True"/>
                             <ComboBoxItem Content="1.5x"/>
                             <ComboBoxItem Content="2x"/>
                         </ComboBox>
+                        <Button Content="📝"
+                                    ToolTip="Toggle Notes"
+                                    Click="ToggleNotes_Click"
+                                    Style="{StaticResource PlayerButtonStyle}"
+                                    Margin="12,0,0,0"/>
                     </StackPanel>
                 </Grid>
             </Border>
         </Grid>
+
+        <!-- ── Notes panel ── -->
+        <Border Grid.Row="1" Grid.Column="1"
+                Background="{DynamicResource PlayerSurfaceBrush}"
+                BorderBrush="{DynamicResource PlayerBorderBrush}"
+                BorderThickness="1,0,0,0">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <!-- Header -->
+                <Border Grid.Row="0"
+                        Background="{DynamicResource PlayerElevatedBrush}"
+                        BorderBrush="{DynamicResource PlayerBorderBrush}"
+                        BorderThickness="0,0,0,1"
+                        Padding="12,8">
+                    <Grid>
+                        <TextBlock Text="Notes"
+                                   Foreground="{DynamicResource PlayerTextPrimaryBrush}"
+                                   FontFamily="{DynamicResource PlayerFontFamilyUi}"
+                                   FontSize="{DynamicResource PlayerFontSizeBase}"
+                                   FontWeight="Medium"
+                                   VerticalAlignment="Center"/>
+                        <TextBlock x:Name="NoteCountText"
+                                   Text="± 30s"
+                                   Foreground="{DynamicResource PlayerMutedBrush}"
+                                   FontFamily="{DynamicResource PlayerFontFamilyUi}"
+                                   FontSize="{DynamicResource PlayerFontSizeXs}"
+                                   HorizontalAlignment="Right"
+                                   VerticalAlignment="Center"/>
+                    </Grid>
+                </Border>
+
+                <!-- Notes list -->
+                <ScrollViewer x:Name="NotesScrollViewer"
+                              Grid.Row="1"
+                              VerticalScrollBarVisibility="Auto"
+                              Padding="0">
+                    <ItemsControl x:Name="NotesList" Margin="0">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Margin="8,4"
+                                        Padding="10,8"
+                                        Background="{DynamicResource PlayerCardBgBrush}"
+                                        BorderBrush="{DynamicResource PlayerBorderBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="{DynamicResource PlayerCardRadius}">
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                        </Grid.RowDefinitions>
+                                        <Grid Grid.Row="0">
+                                            <TextBlock Text="{Binding TimestampLabel}"
+                                                       Foreground="{DynamicResource PlayerPrimaryBrush}"
+                                                       FontFamily="{DynamicResource PlayerFontFamilyUi}"
+                                                       FontSize="{DynamicResource PlayerFontSizeXs}"
+                                                       FontWeight="Medium"
+                                                       Cursor="Hand"
+                                                       MouseLeftButtonUp="NoteTimestamp_Click"
+                                                       ToolTip="Click to seek to this moment"/>
+                                            <Button Content="✕"
+                                                    HorizontalAlignment="Right"
+                                                    Style="{StaticResource ChromeButtonStyle}"
+                                                    FontSize="10"
+                                                    Width="18" Height="18"
+                                                    Tag="{Binding}"
+                                                    Click="DeleteNote_Click"/>
+                                        </Grid>
+                                        <TextBlock Grid.Row="1"
+                                                   Text="{Binding Text}"
+                                                   Foreground="{DynamicResource PlayerTextPrimaryBrush}"
+                                                   FontFamily="{DynamicResource PlayerFontFamilyUi}"
+                                                   FontSize="{DynamicResource PlayerFontSizeSm}"
+                                                   TextWrapping="Wrap"
+                                                   Margin="0,4,0,0"/>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+
+                <!-- Input area -->
+                <Border Grid.Row="2"
+                        BorderBrush="{DynamicResource PlayerBorderBrush}"
+                        BorderThickness="0,1,0,0"
+                        Padding="8">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <TextBox x:Name="NoteInput"
+                                 Grid.Row="0"
+                                 Background="{DynamicResource PlayerCardBgBrush}"
+                                 Foreground="{DynamicResource PlayerTextPrimaryBrush}"
+                                 BorderBrush="{DynamicResource PlayerBorderBrush}"
+                                 BorderThickness="1"
+                                 FontFamily="{DynamicResource PlayerFontFamilyUi}"
+                                 FontSize="{DynamicResource PlayerFontSizeSm}"
+                                 Padding="8,6"
+                                 TextWrapping="Wrap"
+                                 AcceptsReturn="False"
+                                 Height="60"
+                                 VerticalScrollBarVisibility="Auto"
+                                 CaretBrush="{DynamicResource PlayerTextPrimaryBrush}"
+                                 KeyDown="NoteInput_KeyDown"/>
+                        <Button Grid.Row="1"
+                                Content="Add Note"
+                                Margin="0,6,0,0"
+                                Style="{StaticResource PlayerButtonStyle}"
+                                HorizontalAlignment="Stretch"
+                                Click="AddNote_Click"/>
+                    </Grid>
+                </Border>
+            </Grid>
+        </Border>
+
     </Grid>
 </Window>
