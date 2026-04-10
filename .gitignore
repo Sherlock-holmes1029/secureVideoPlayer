@@ -1,0 +1,17 @@
+# Build files
+[Bb]in/
+[Oo]bj/
+
+# Visual Studio files
+.vs/
+*.user
+*.userosscache
+*.sln.docstates
+
+# NuGet
+*.nuget.props
+*.nuget.targets
+
+# Temp files
+*.tmp
+*.log

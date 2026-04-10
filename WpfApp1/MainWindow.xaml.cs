@@ -1,46 +1,41 @@
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
 using System.Runtime.InteropServices;
 using System.Text.Json;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Threading;
+using LibVLCSharp.Shared;
 using Microsoft.Win32;
 
 namespace WpfApp1
 {
     public partial class MainWindow : Window
     {
-        private bool _isPlaying;
-        private bool _isFullscreen;
-        private bool _userIsInteracting;
-        private string _videoFileName = "";
-
-        private readonly DispatcherTimer _hideControlsTimer = new DispatcherTimer();
-        private readonly DispatcherTimer _fullscreenHintTimer = new DispatcherTimer();
-        private readonly DispatcherTimer _progressTimer = new DispatcherTimer();
-
-        private Point _lastMousePosition;
-        private readonly DispatcherTimer _mouseMoveDebounce = new DispatcherTimer();
-
-        // Notes
-        private List<VideoNote> _allNotes = new();
-        private string _notesFilePath = "";
-        private bool _notesVisible = false;
+        private LibVLC _libVLC;
+        private MediaPlayer _mediaPlayer;
+        private readonly HttpClient _httpClient = new HttpClient();
 
         [DllImport("user32.dll")]
         private static extern bool SetWindowDisplayAffinity(IntPtr hwnd, uint affinity);
         private const uint WDA_EXCLUDEFROMCAPTURE = 0x11;
 
-        private bool HasVideo => VideoPlayer.Source != null;
+        private bool HasVideo => _mediaPlayer?.Media != null;
 
         public MainWindow()
         {
             InitializeComponent();
+
+            // Initialize LibVLC
+            Core.Initialize();
+            _libVLC = new LibVLC();
+            _mediaPlayer = new MediaPlayer(_libVLC);
+            VideoPlayer.MediaPlayer = _mediaPlayer;
 
             _hideControlsTimer.Interval = TimeSpan.FromSeconds(4);
             _hideControlsTimer.Tick += HideControlsTimer_Tick;
@@ -60,6 +55,7 @@ namespace WpfApp1
 
             VolumeSlider.Value = 50;
             VolumePercentText.Text = "50%";
+            _mediaPlayer.Volume = 50;
 
             ControlBar.MouseEnter += (_, _) => _userIsInteracting = true;
             ControlBar.MouseLeave += (_, _) => _userIsInteracting = false;
@@ -71,32 +67,69 @@ namespace WpfApp1
                 ShowControls();
                 Focus();
             };
+
+            _mediaPlayer.EndReached += (s, e) => Dispatcher.Invoke(OnMediaEnded);
         }
+
+        private void OnMediaEnded()
+        {
+            _progressTimer.Stop();
+            _isPlaying = false;
+            PlayPauseButton.Content = "▶";
+            ProgressSlider.Value = 0;
+            _mediaPlayer.Stop();
+            ShowControls();
+            _hideControlsTimer.Stop();
+        }
+
+        private bool _isPlaying;
+        private bool _isFullscreen;
+        private bool _userIsInteracting;
+        private string _videoFileName = "";
+
+        private readonly DispatcherTimer _hideControlsTimer = new DispatcherTimer();
+        private readonly DispatcherTimer _fullscreenHintTimer = new DispatcherTimer();
+        private readonly DispatcherTimer _progressTimer = new DispatcherTimer();
+
+        private Point _lastMousePosition;
+        private readonly DispatcherTimer _mouseMoveDebounce = new DispatcherTimer();
+
+        // Notes
+        private List<VideoNote> _allNotes = new();
+        private string _notesFilePath = "";
+        private bool _notesVisible = false;
 
         // ================= SHOW / HIDE CONTROLS =================
         private void ShowControls()
         {
+            // Ensure UI elements are visible
             ControlBar.Visibility = Visibility.Visible;
-            if (_isFullscreen)
-                TitleRow.Height = new GridLength(32);
+            
+            // In fullscreen, we also restore the TitleBar when waking up
+            TitleRow.Height = new GridLength(32);
 
             _hideControlsTimer.Stop();
+            
+            // Only restart the hide timer if a video is playing and user isn't hovering over controls
             if (HasVideo && _isPlaying && !_userIsInteracting)
                 _hideControlsTimer.Start();
         }
 
         private void HideControlsTimer_Tick(object? sender, EventArgs e)
         {
+            // Don't hide if user is currently interacting with the control bar
             if (_userIsInteracting)
-            {
-                _hideControlsTimer.Start();
                 return;
-            }
+
             if (HasVideo && _isPlaying)
             {
                 ControlBar.Visibility = Visibility.Collapsed;
+                
+                // Only hide the TitleBar in Fullscreen mode during playback
                 if (_isFullscreen)
+                {
                     TitleRow.Height = new GridLength(0);
+                }
             }
             _hideControlsTimer.Stop();
         }
@@ -123,26 +156,70 @@ namespace WpfApp1
         {
             var dialog = new OpenFileDialog
             {
-                Filter = "Video files|*.mp4;*.mkv;*.avi;*.mov;*.wmv|All files|*.*"
+                Filter = "Video files|*.mp4;*.mkv;*.avi;*.mov;*.wmv;*.m3u8|All files|*.*"
             };
 
             if (dialog.ShowDialog() == true)
             {
-                VideoPlayer.Source = new Uri(dialog.FileName);
-                VideoPlayer.Position = TimeSpan.Zero;
+                var media = new Media(_libVLC, new Uri(dialog.FileName));
+                _mediaPlayer.Play(media);
+                
                 string videoTitle = Path.GetFileNameWithoutExtension(dialog.FileName);
                 this.Title = $"Protected Video Player – {videoTitle}";
                 TitleText.Text = videoTitle;
-                Play();
+                
+                _isPlaying = true;
+                PlayPauseButton.Content = "⏸";
+                _progressTimer.Start();
                 ShowControls();
                 LoadNotes(dialog.FileName);
+            }
+        }
+
+        public async Task StartHandshakeAndPlayAsync(string oneTimeToken)
+        {
+            if (string.IsNullOrEmpty(oneTimeToken)) return;
+
+            try
+            {
+                // Call the NestJS validation endpoint (public, no Bearer auth needed)
+                var response = await _httpClient.GetAsync(
+                    $"http://localhost:3000/api/v1/bunny-stream/validate/{Uri.EscapeDataString(oneTimeToken)}");
+                response.EnsureSuccessStatusCode();
+
+                var json = await response.Content.ReadAsStringAsync();
+                using var doc = JsonDocument.Parse(json);
+
+                // The NestJS TransformInterceptor wraps responses as:
+                // { "data": { "videoId": "...", "title": "...", "hlsUrl": "...", "userId": "..." }, "success": true, "timestamp": "..." }
+                var data = doc.RootElement.GetProperty("data");
+                string hlsUrl = data.GetProperty("hlsUrl").GetString()!;
+                string title = data.GetProperty("title").GetString() ?? "Secure Stream";
+
+                Dispatcher.Invoke(() =>
+                {
+                    var media = new Media(_libVLC, new Uri(hlsUrl));
+                    _mediaPlayer.Play(media);
+                    _isPlaying = true;
+                    PlayPauseButton.Content = "⏸";
+                    TitleText.Text = title;
+                    this.Title = $"Protected Video Player – {title}";
+                    _progressTimer.Start();
+                    ShowControls();
+                });
+            }
+            catch (Exception ex)
+            {
+                Dispatcher.Invoke(() =>
+                    MessageBox.Show($"Secure handshake failed: {ex.Message}", "Playback Error",
+                        MessageBoxButton.OK, MessageBoxImage.Error));
             }
         }
 
         private void Play()
         {
             if (!HasVideo) return;
-            VideoPlayer.Play();
+            _mediaPlayer.Play();
             _isPlaying = true;
             PlayPauseButton.Content = "⏸";
             _progressTimer.Start();
@@ -153,7 +230,7 @@ namespace WpfApp1
         private void Pause()
         {
             if (!HasVideo) return;
-            VideoPlayer.Pause();
+            _mediaPlayer.Pause();
             _isPlaying = false;
             PlayPauseButton.Content = "▶";
             _progressTimer.Stop();
@@ -162,7 +239,6 @@ namespace WpfApp1
 
         private void TogglePlayPause()
         {
-            if (!HasVideo) return;
             if (_isPlaying) Pause();
             else Play();
         }
@@ -176,15 +252,10 @@ namespace WpfApp1
         private void SkipBySeconds(double seconds)
         {
             if (!HasVideo) return;
-            var newPos = VideoPlayer.Position + TimeSpan.FromSeconds(seconds);
-            if (VideoPlayer.NaturalDuration.HasTimeSpan)
-            {
-                var total = VideoPlayer.NaturalDuration.TimeSpan;
-                if (newPos < TimeSpan.Zero) newPos = TimeSpan.Zero;
-                if (newPos > total) newPos = total;
-            }
-            VideoPlayer.Position = newPos;
-            ProgressSlider.Value = VideoPlayer.Position.TotalSeconds;
+            long newTime = _mediaPlayer.Time + (long)(seconds * 1000);
+            if (newTime < 0) newTime = 0;
+            if (newTime > _mediaPlayer.Length) newTime = _mediaPlayer.Length;
+            _mediaPlayer.Time = newTime;
         }
 
         private void SkipBackButton_Click(object sender, RoutedEventArgs e)
@@ -200,31 +271,15 @@ namespace WpfApp1
         }
 
         // ================= PROGRESS =================
-        private void VideoPlayer_MediaOpened(object sender, RoutedEventArgs e)
-        {
-            if (VideoPlayer.NaturalDuration.HasTimeSpan)
-                ProgressSlider.Maximum = VideoPlayer.NaturalDuration.TimeSpan.TotalSeconds;
-
-            ApplyPlaybackSpeed();
-            _progressTimer.Start();
-        }
-
-        private void VideoPlayer_MediaEnded(object sender, RoutedEventArgs e)
-        {
-            _progressTimer.Stop();
-            _isPlaying = false;
-            PlayPauseButton.Content = "▶";
-            ProgressSlider.Value = 0;
-            VideoPlayer.Position = TimeSpan.Zero;
-            ShowControls();
-            _hideControlsTimer.Stop();
-        }
-
         private void ProgressTimer_Tick(object? sender, EventArgs e)
         {
-            if (!HasVideo || !VideoPlayer.NaturalDuration.HasTimeSpan) return;
+            if (!HasVideo || _mediaPlayer.Length <= 0) return;
+            
             if (!ProgressSlider.IsMouseCaptureWithin)
-                ProgressSlider.Value = VideoPlayer.Position.TotalSeconds;
+            {
+                ProgressSlider.Maximum = _mediaPlayer.Length / 1000.0;
+                ProgressSlider.Value = _mediaPlayer.Time / 1000.0;
+            }
 
             RefreshVisibleNotes();
         }
@@ -237,7 +292,7 @@ namespace WpfApp1
 private void ProgressSlider_MouseUp(object sender, MouseButtonEventArgs e)
 {
     if (!HasVideo) return;
-    VideoPlayer.Position = TimeSpan.FromSeconds(ProgressSlider.Value);
+    _mediaPlayer.Time = (long)(ProgressSlider.Value * 1000);
     ShowControls();
     RefreshVisibleNotes();
 }
@@ -245,10 +300,11 @@ private void ProgressSlider_MouseUp(object sender, MouseButtonEventArgs e)
         // ================= VOLUME =================
         private void VolumeSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
+            if (_mediaPlayer == null) return;
             var volumePercent = VolumeSlider.Value;
             VolumePercentText.Text = $"{(int)volumePercent}%";
             VolumeIcon.Text = volumePercent == 0 ? "🔇" : "🔊";
-            VideoPlayer.Volume = volumePercent / 100.0;
+            _mediaPlayer.Volume = (int)volumePercent;
             ShowControls();
         }
 
@@ -285,8 +341,8 @@ private void ProgressSlider_MouseUp(object sender, MouseButtonEventArgs e)
                 item.Content is string text)
             {
                 if (text.EndsWith("x")) text = text[..^1];
-                if (double.TryParse(text, out var speed))
-                    VideoPlayer.SpeedRatio = speed;
+                if (float.TryParse(text, out var speed))
+                    _mediaPlayer?.SetRate(speed);
             }
         }
 
@@ -315,14 +371,19 @@ private void ProgressSlider_MouseUp(object sender, MouseButtonEventArgs e)
         private void ContentGrid_MouseMove(object sender, MouseEventArgs e)
         {
             if (!HasVideo) return;
-            Point currentPosition = e.GetPosition(ContentGrid);
+
+            // Get position relative to the main grid to calculate movement delta
+            Point currentPosition = e.GetPosition(this);
             double distance = Math.Sqrt(
                 Math.Pow(currentPosition.X - _lastMousePosition.X, 2) +
                 Math.Pow(currentPosition.Y - _lastMousePosition.Y, 2));
 
-            if (distance > 5)
+            // If the mouse moved significantly or if controls are currently hidden, wake up the UI
+            if (distance > 2 || ControlBar.Visibility != Visibility.Visible)
             {
                 _lastMousePosition = currentPosition;
+                
+                // Show controls and use a small debounce to avoid flickering
                 if (!_mouseMoveDebounce.IsEnabled)
                 {
                     ShowControls();
@@ -392,11 +453,10 @@ private void ProgressSlider_MouseUp(object sender, MouseButtonEventArgs e)
 
         private void JumpToPercent(int percent)
         {
-            if (!HasVideo || !VideoPlayer.NaturalDuration.HasTimeSpan) return;
-            var total = VideoPlayer.NaturalDuration.TimeSpan;
-            var newPos = TimeSpan.FromSeconds(total.TotalSeconds * percent / 100.0);
-            VideoPlayer.Position = newPos;
-            ProgressSlider.Value = newPos.TotalSeconds;
+            if (!HasVideo || _mediaPlayer.Length <= 0) return;
+            long newTime = (long)(_mediaPlayer.Length * (percent / 100.0));
+            _mediaPlayer.Time = newTime;
+            ProgressSlider.Value = newTime / 1000.0;
         }
 
         // ================= NOTES PANEL =================
@@ -453,8 +513,8 @@ private void ProgressSlider_MouseUp(object sender, MouseButtonEventArgs e)
         // ================= NOTES DISPLAY =================
         private void RefreshVisibleNotes()
         {
-            if (!_notesVisible) return;
-            var currentSeconds = VideoPlayer.Position.TotalSeconds;
+            if (!_notesVisible || !HasVideo) return;
+            var currentSeconds = _mediaPlayer.Time / 1000.0;
             var visible = _allNotes
                 .Where(n => Math.Abs(n.Timestamp - currentSeconds) <= 30)
                 .OrderBy(n => n.Timestamp)
@@ -486,7 +546,7 @@ private void ProgressSlider_MouseUp(object sender, MouseButtonEventArgs e)
 
             var note = new VideoNote
             {
-                Timestamp = VideoPlayer.Position.TotalSeconds,
+                Timestamp = _mediaPlayer.Time / 1000.0,
                 Text = text,
                 CreatedAt = DateTime.Now
             };
@@ -514,7 +574,7 @@ private void ProgressSlider_MouseUp(object sender, MouseButtonEventArgs e)
         {
             if (sender is TextBlock tb && tb.DataContext is VideoNote note)
             {
-                VideoPlayer.Position = TimeSpan.FromSeconds(note.Timestamp);
+                _mediaPlayer.Time = (long)(note.Timestamp * 1000);
                 ProgressSlider.Value = note.Timestamp;
             }
         }

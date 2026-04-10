@@ -1,6 +1,7 @@
-﻿<Window x:Class="WpfApp1.MainWindow"
+<Window x:Class="WpfApp1.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vlc="clr-namespace:LibVLCSharp.WPF;assembly=LibVLCSharp.WPF"
         Title="Video Player"
         Height="500" Width="900"
         WindowStartupLocation="CenterScreen"
@@ -10,6 +11,10 @@
         ResizeMode="CanResize"
         PreviewKeyDown="Window_PreviewKeyDown"
         Focusable="True">
+
+    <WindowChrome.WindowChrome>
+        <WindowChrome CaptionHeight="0" ResizeBorderThickness="5" GlassFrameThickness="0" CornerRadius="0" UseAeroCaptionButtons="False"/>
+    </WindowChrome.WindowChrome>
 
     <Window.Resources>
 
@@ -260,7 +265,7 @@
 
         <!-- ── Title bar (spans both columns) ── -->
         <Grid Grid.Row="0" Grid.ColumnSpan="2" Background="{DynamicResource PlayerSurfaceBrush}"
-              MouseDown="TitleBar_MouseDown">
+              MouseDown="TitleBar_MouseDown" Panel.ZIndex="100">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition/>
@@ -294,18 +299,31 @@
         </Grid>
 
         <!-- ── Video area ── -->
-        <Grid x:Name="ContentGrid" Grid.Row="1" Grid.Column="0" Background="Black"
-              MouseMove="ContentGrid_MouseMove"
-              MouseLeftButtonDown="ContentGrid_MouseLeftButtonDown">
+        <Grid x:Name="ContentGrid" Grid.Row="1" Grid.Column="0" Background="Black">
+            <!-- 
+                VLC VideoView at the absolute bottom. 
+                Using Panel.ZIndex to help with layout stacking, 
+                though hardware rendering may still present airspace issues. 
+            -->
+            <vlc:VideoView x:Name="VideoPlayer" 
+                           HorizontalAlignment="Stretch" 
+                           VerticalAlignment="Stretch" 
+                           Panel.ZIndex="0" />
 
-            <MediaElement x:Name="VideoPlayer"
-                          LoadedBehavior="Manual" UnloadedBehavior="Stop"
-                          Stretch="Uniform"
-                          MediaOpened="VideoPlayer_MediaOpened"
-                          MediaEnded="VideoPlayer_MediaEnded"/>
+            <!-- 
+                Transparent Overlay to capture mouse events.
+                This prevents the VLC hardware window from swallowing clicks and moves,
+                allowing our auto-hide and play/pause logic to work reliably.
+            -->
+            <Grid x:Name="VideoOverlay" 
+                  Background="Transparent" 
+                  Panel.ZIndex="50"
+                  MouseMove="ContentGrid_MouseMove"
+                  MouseLeftButtonDown="ContentGrid_MouseLeftButtonDown" />
 
-            <!-- Fullscreen hint -->
+            <!-- Fullscreen hint (Z-Index high to stay above overlay) -->
             <Border x:Name="FullscreenHint"
+                    Panel.ZIndex="100"
                     Background="#BB000000"
                     CornerRadius="{DynamicResource PlayerRadiusMd}"
                     Padding="8"
@@ -317,8 +335,9 @@
                            FontSize="{DynamicResource PlayerFontSizeSm}"/>
             </Border>
 
-            <!-- ── Control bar ── -->
+            <!-- ── Control bar (Z-Index high to stay above overlay) ── -->
             <Border x:Name="ControlBar"
+                    Panel.ZIndex="100"
                     Background="{DynamicResource PlayerControlBarBrush}"
                     CornerRadius="{DynamicResource PlayerCardRadius}"
                     BorderBrush="{DynamicResource PlayerCardBorderBrush}"
