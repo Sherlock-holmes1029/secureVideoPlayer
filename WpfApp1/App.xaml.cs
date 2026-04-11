@@ -15,6 +15,15 @@ namespace WpfApp1
     {
         private readonly HttpClient _http = new HttpClient();
 
+        public App()
+        {
+            this.DispatcherUnhandledException += (s, e) =>
+            {
+                MessageBox.Show(e.Exception.ToString(), "Fatal WPF Crash");
+                e.Handled = true;
+            };
+        }
+
         protected override void OnStartup(StartupEventArgs e)
         {
             base.OnStartup(e);

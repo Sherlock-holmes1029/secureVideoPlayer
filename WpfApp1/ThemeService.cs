@@ -58,8 +58,8 @@ namespace WpfApp1
             }
         }
 
-        // ── Step 2: called after MainWindow is loaded (radius, font, weight) ────
-        public static void ApplyToWindow(MainWindow window)
+        // ── Step 2: generalized for any Window (radius, font, weight) ────
+        public static void ApplyToWindow(Window window)
         {
             var cssVars = _cssVars;
 
@@ -103,11 +103,11 @@ namespace WpfApp1
                     btn.FontSize = fontSize;
                     btn.FontWeight = fontWeight;
                     btn.ApplyTemplate();
-                    if (btn.Template.FindName("border", btn) is Border b)
+                    if (btn.Template?.FindName("border", btn) is Border b)
                         b.CornerRadius = buttonRadius;
                 }
 
-                // Patch control bar border
+                // Patch control bar border if found
                 if (window.FindName("ControlBar") is Border controlBar)
                     controlBar.CornerRadius = cardRadius;
             };
