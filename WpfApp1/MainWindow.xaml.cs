@@ -139,6 +139,16 @@ namespace WpfApp1
             }
         }
 
+        public void OpenRemoteVideo(string url, string title)
+        {
+            VideoPlayer.Source = new Uri(url);
+            VideoPlayer.Position = TimeSpan.Zero;
+            this.Title = $"Protected Video Player – {title}";
+            TitleText.Text = title;
+            Play();
+            ShowControls();
+        }
+
         private void Play()
         {
             if (!HasVideo) return;
@@ -218,6 +228,11 @@ namespace WpfApp1
             VideoPlayer.Position = TimeSpan.Zero;
             ShowControls();
             _hideControlsTimer.Stop();
+        }
+
+        private void VideoPlayer_MediaFailed(object sender, ExceptionRoutedEventArgs e)
+        {
+            MessageBox.Show($"Playback failed: {e.ErrorException?.Message ?? "Unknown error"}\n\nNote: If you are watching a remote stream, you might need to install HLS/HEVC codecs or we may need to integrate a third-party player library.", "Playback Error", MessageBoxButton.OK, MessageBoxImage.Error);
         }
 
         private void ProgressTimer_Tick(object? sender, EventArgs e)

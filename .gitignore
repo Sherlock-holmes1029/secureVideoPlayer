@@ -1,0 +1,15 @@
+# Standard .NET / WPF Ignore Patterns
+**/[Bb]in/
+**/[Oo]bj/
+**/.vs/
+**/*.user
+**/*.suo
+**/*.userosscache
+**/*.sln.docstates
+
+# Visual Studio Code
+.vscode/
+
+# OS files
+Thumbs.db
+.DS_Store
