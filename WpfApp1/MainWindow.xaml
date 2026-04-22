@@ -7,9 +7,17 @@
         Background="{DynamicResource PlayerBackgroundBrush}"
         FontFamily="{DynamicResource PlayerFontFamily}"
         WindowStyle="None"
+        AllowsTransparency="True"
         ResizeMode="CanResize"
         PreviewKeyDown="Window_PreviewKeyDown"
         Focusable="True">
+
+    <WindowChrome.WindowChrome>
+        <WindowChrome CaptionHeight="32" 
+                      ResizeBorderThickness="8"
+                      GlassFrameThickness="0"
+                      CornerRadius="0"/>
+    </WindowChrome.WindowChrome>
 
     <Window.Resources>
 
@@ -259,8 +267,7 @@
         </Grid.ColumnDefinitions>
 
         <!-- ── Title bar (spans both columns) ── -->
-        <Grid Grid.Row="0" Grid.ColumnSpan="2" Background="{DynamicResource PlayerSurfaceBrush}"
-              MouseDown="TitleBar_MouseDown">
+        <Grid Grid.Row="0" Grid.ColumnSpan="2" Background="{DynamicResource PlayerSurfaceBrush}">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition/>
@@ -270,7 +277,8 @@
             <StackPanel Orientation="Horizontal" Margin="8,0">
                 <Button Content="Open"
                         Style="{StaticResource PlayerButtonStyle}"
-                        Click="OpenButton_Click"/>
+                        Click="OpenButton_Click"
+                        WindowChrome.IsHitTestVisibleInChrome="True"/>
                 <TextBlock x:Name="TitleText"
                            Text="Protected Video Player"
                            Foreground="{DynamicResource PlayerTextPrimaryBrush}"
@@ -280,7 +288,7 @@
                            VerticalAlignment="Center"/>
             </StackPanel>
 
-            <StackPanel Grid.Column="2" Orientation="Horizontal">
+            <StackPanel Grid.Column="2" Orientation="Horizontal" WindowChrome.IsHitTestVisibleInChrome="True">
                 <Button Content="—" Width="40" Height="32"
                         Style="{StaticResource ChromeButtonStyle}"
                         Click="MinimizeButton_Click"/>
@@ -305,6 +313,36 @@
                           MediaEnded="VideoPlayer_MediaEnded"
                           MediaFailed="VideoPlayer_MediaFailed"/>
 
+            <!-- Loading overlay -->
+            <Border x:Name="LoadingOverlay"
+                    Background="#DD000000"
+                    Visibility="Collapsed">
+                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <TextBlock x:Name="LoadingText" Text="Connecting..."
+                               Foreground="{DynamicResource PlayerTextPrimaryBrush}"
+                               FontFamily="{DynamicResource PlayerFontFamilyUi}"
+                               FontSize="{DynamicResource PlayerFontSizeLg}"
+                               HorizontalAlignment="Center"
+                               Margin="0,0,0,8"/>
+                    <TextBlock Text="●  ●  ●"
+                               Foreground="{DynamicResource PlayerPrimaryBrush}"
+                               FontSize="20"
+                               HorizontalAlignment="Center">
+                        <TextBlock.Triggers>
+                            <EventTrigger RoutedEvent="Loaded">
+                                <BeginStoryboard>
+                                    <Storyboard RepeatBehavior="Forever">
+                                        <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                                                         From="0.3" To="1.0" Duration="0:0:0.6"
+                                                         AutoReverse="True"/>
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </EventTrigger>
+                        </TextBlock.Triggers>
+                    </TextBlock>
+                </StackPanel>
+            </Border>
+
             <!-- Fullscreen hint -->
             <Border x:Name="FullscreenHint"
                     Background="#BB000000"
@@ -318,80 +356,114 @@
                            FontSize="{DynamicResource PlayerFontSizeSm}"/>
             </Border>
 
-            <!-- ── Control bar ── -->
+            <!-- ── Control bar (compact floating look, eats clicks) ── -->
             <Border x:Name="ControlBar"
                     Background="{DynamicResource PlayerControlBarBrush}"
                     CornerRadius="{DynamicResource PlayerCardRadius}"
                     BorderBrush="{DynamicResource PlayerCardBorderBrush}"
                     BorderThickness="1"
-                    Padding="12"
+                    Padding="14,8"
                     VerticalAlignment="Bottom" HorizontalAlignment="Center"
-                    Margin="10">
+                    Width="Auto" MaxWidth="850"
+                    Margin="20,0,20,15"
+                    Opacity="1">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
 
+                    <!-- Progress bar -->
                     <Slider x:Name="ProgressSlider" Grid.Row="0"
                             Minimum="0" Height="14"
                             Style="{StaticResource PlayerSliderStyle}"
                             ValueChanged="ProgressSlider_ValueChanged"
                             PreviewMouseLeftButtonUp="ProgressSlider_MouseUp"/>
 
-                    <StackPanel Grid.Row="1" Orientation="Horizontal"
-                                HorizontalAlignment="Center" Margin="0,8,0,0">
+                    <!-- Time display -->
+                    <TextBlock x:Name="TimeDisplay" Grid.Row="1"
+                               Text="0:00 / 0:00"
+                               Foreground="{DynamicResource PlayerTextPrimaryBrush}"
+                               FontFamily="{DynamicResource PlayerFontFamilyUi}"
+                               FontSize="{DynamicResource PlayerFontSizeSm}"
+                               FontWeight="Medium"
+                               HorizontalAlignment="Left"
+                               Margin="2,6,0,0"/>
 
-                        <Button Content="⏮" ToolTip="Back 10s (←)"
-                                Click="SkipBackButton_Click"
-                                Style="{StaticResource PlayerButtonStyle}"/>
-                        <Button x:Name="PlayPauseButton" Content="▶"
-                                ToolTip="Play / Pause (Space or K)"
-                                Click="PlayPauseButton_Click"
-                                Style="{StaticResource PlayerButtonStyle}"/>
-                        <Button Content="⏭" ToolTip="Forward 10s (→)"
-                                Click="SkipForwardButton_Click"
-                                Style="{StaticResource PlayerButtonStyle}"/>
+                    <!-- Controls row -->
+                    <Grid Grid.Row="2" Margin="0,4,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
 
-                        <TextBlock x:Name="VolumeIcon" Text="🔊"
-                                   FontSize="14"
-                                   Foreground="{DynamicResource PlayerTextPrimaryBrush}"
-                                   Margin="12,0,4,0" Cursor="Hand"
-                                   VerticalAlignment="Center"
-                                   MouseLeftButtonUp="VolumeIcon_Click"
-                                   ToolTip="Mute / Unmute (M)"/>
-                        <Slider x:Name="VolumeSlider" Width="100" Height="14"
-                                Minimum="0" Maximum="100"
-                                Style="{StaticResource PlayerSliderStyle}"
-                                ValueChanged="VolumeSlider_ValueChanged"
-                                ToolTip="Volume (↑ / ↓)"/>
-                        <TextBlock x:Name="VolumePercentText"
-                                   Foreground="{DynamicResource PlayerTextPrimaryBrush}"
-                                   FontFamily="{DynamicResource PlayerFontFamilyUi}"
-                                   FontSize="{DynamicResource PlayerFontSizeSm}"
-                                   Margin="6,0" Text="50%"/>
+                        <!-- Left: playback controls -->
+                        <StackPanel Grid.Column="0" Orientation="Horizontal"
+                                    VerticalAlignment="Center">
+                            <Button Content="⏮" ToolTip="Back 10s (←)"
+                                    Click="SkipBackButton_Click"
+                                    Style="{StaticResource PlayerButtonStyle}"/>
+                            <Button x:Name="PlayPauseButton" Content="▶"
+                                    ToolTip="Play / Pause (Space or K)"
+                                    Click="PlayPauseButton_Click"
+                                    Style="{StaticResource PlayerButtonStyle}"/>
+                            <Button Content="⏭" ToolTip="Forward 10s (→)"
+                                    Click="SkipForwardButton_Click"
+                                    Style="{StaticResource PlayerButtonStyle}"/>
+                        </StackPanel>
 
-                        <TextBlock Text="Speed:"
-                                   Foreground="{DynamicResource PlayerTextPrimaryBrush}"
-                                   FontFamily="{DynamicResource PlayerFontFamilyUi}"
-                                   FontSize="{DynamicResource PlayerFontSizeSm}"
-                                   Margin="12,0,4,0" VerticalAlignment="Center"/>
-                        <ComboBox x:Name="SpeedComboBox" Width="80"
-                                  Style="{StaticResource SpeedComboStyle}"
-                                  ItemContainerStyle="{StaticResource DarkComboItemStyle}"
-                                  SelectionChanged="SpeedComboBox_SelectionChanged"
-                                  ToolTip="Playback speed">    
-                            <ComboBoxItem Content="0.5x"/>
-                            <ComboBoxItem Content="1x" IsSelected="True"/>
-                            <ComboBoxItem Content="1.5x"/>
-                            <ComboBoxItem Content="2x"/>
-                        </ComboBox>
-                        <Button Content="📝"
+                        <!-- Center: volume -->
+                        <StackPanel Grid.Column="1" Orientation="Horizontal"
+                                    HorizontalAlignment="Center"
+                                    VerticalAlignment="Center">
+                            <TextBlock x:Name="VolumeIcon" Text="🔊"
+                                       FontSize="14"
+                                       Foreground="{DynamicResource PlayerTextPrimaryBrush}"
+                                       Margin="0,0,6,0" Cursor="Hand"
+                                       VerticalAlignment="Center"
+                                       MouseLeftButtonUp="VolumeIcon_Click"
+                                       ToolTip="Mute / Unmute (M)"/>
+                            <Slider x:Name="VolumeSlider" Width="100" Height="14"
+                                    Minimum="0" Maximum="100"
+                                    Style="{StaticResource PlayerSliderStyle}"
+                                    ValueChanged="VolumeSlider_ValueChanged"
+                                    VerticalAlignment="Center"
+                                    ToolTip="Volume (↑ / ↓)"/>
+                            <TextBlock x:Name="VolumePercentText"
+                                       Foreground="{DynamicResource PlayerTextPrimaryBrush}"
+                                       FontFamily="{DynamicResource PlayerFontFamilyUi}"
+                                       FontSize="{DynamicResource PlayerFontSizeXs}"
+                                       Margin="6,0" Text="50%"
+                                       VerticalAlignment="Center"/>
+                        </StackPanel>
+
+                        <!-- Right: speed + notes -->
+                        <StackPanel Grid.Column="2" Orientation="Horizontal"
+                                    VerticalAlignment="Center">
+                            <TextBlock Text="Speed:"
+                                       Foreground="{DynamicResource PlayerTextPrimaryBrush}"
+                                       FontFamily="{DynamicResource PlayerFontFamilyUi}"
+                                       FontSize="{DynamicResource PlayerFontSizeXs}"
+                                       Margin="0,0,4,0" VerticalAlignment="Center"/>
+                            <ComboBox x:Name="SpeedComboBox" Width="70"
+                                      Style="{StaticResource SpeedComboStyle}"
+                                      ItemContainerStyle="{StaticResource DarkComboItemStyle}"
+                                      SelectionChanged="SpeedComboBox_SelectionChanged"
+                                      ToolTip="Playback speed">
+                                <ComboBoxItem Content="0.5x"/>
+                                <ComboBoxItem Content="1x" IsSelected="True"/>
+                                <ComboBoxItem Content="1.5x"/>
+                                <ComboBoxItem Content="2x"/>
+                            </ComboBox>
+                            <Button Content="📝"
                                     ToolTip="Toggle Notes"
                                     Click="ToggleNotes_Click"
                                     Style="{StaticResource PlayerButtonStyle}"
-                                    Margin="12,0,0,0"/>
-                    </StackPanel>
+                                    Margin="8,0,0,0"/>
+                        </StackPanel>
+                    </Grid>
                 </Grid>
             </Border>
         </Grid>
