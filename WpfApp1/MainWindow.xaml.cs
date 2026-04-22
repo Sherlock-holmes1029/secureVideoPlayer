@@ -41,6 +41,46 @@ namespace WpfApp1
         // Volume memory for mute toggle
         private double _previousVolume = 50;
 
+        // Path Icon Helper
+        private object GetIcon(string pathData, bool isStroke = false)
+        {
+            var path = new System.Windows.Shapes.Path
+            {
+                Data = System.Windows.Media.Geometry.Parse(pathData),
+                Stretch = System.Windows.Media.Stretch.None
+            };
+            
+            if (isStroke)
+            {
+                path.Stroke = (System.Windows.Media.Brush)FindResource("PlayerTextPrimaryBrush");
+                path.StrokeThickness = 1.8;
+                path.StrokeStartLineCap = System.Windows.Media.PenLineCap.Round;
+                path.StrokeEndLineCap = System.Windows.Media.PenLineCap.Round;
+                path.StrokeLineJoin = System.Windows.Media.PenLineJoin.Round;
+            }
+            else
+            {
+                path.Fill = (System.Windows.Media.Brush)FindResource("PlayerButtonFgBrush");
+            }
+
+            return new Viewbox
+            {
+                Width = 18, Height = 18,
+                Child = new Canvas
+                {
+                    Width = 24, Height = 24,
+                    Children = { path }
+                }
+            };
+        }
+
+        private readonly string PlayIcon = "M5 3l14 9-14 9V3z";
+        private readonly string PauseIcon = "M6 4h4v16H6zm8 0h4v16h-4z";
+        private readonly string VolumeHighIcon = "M11 5L6 9H2v6h4l5 4V5z M15.54 8.46a5 5 0 0 1 0 7.08 M19.07 4.93a10 10 0 0 1 0 14.14";
+        private readonly string VolumeMediumIcon = "M11 5L6 9H2v6h4l5 4V5z M15.54 8.46a5 5 0 0 1 0 7.08";
+        private readonly string VolumeLowIcon = "M11 5L6 9H2v6h4l5 4V5z";
+        private readonly string VolumeMuteIcon = "M11 5L6 9H2v6h4l5 4V5z M23 9l-6 6 M17 9l6 6";
+
         [DllImport("user32.dll")]
         private static extern bool SetWindowDisplayAffinity(IntPtr hwnd, uint affinity);
         private const uint WDA_EXCLUDEFROMCAPTURE = 0x11;
@@ -250,7 +290,7 @@ namespace WpfApp1
             if (!HasVideo) return;
             VideoPlayer.Play();
             _isPlaying = true;
-            PlayPauseButton.Content = "⏸";
+            PlayPauseButton.Content = GetIcon(PauseIcon);
             _progressTimer.Start();
             if (!_userIsInteracting)
                 _hideControlsTimer.Start();
@@ -261,7 +301,7 @@ namespace WpfApp1
             if (!HasVideo) return;
             VideoPlayer.Pause();
             _isPlaying = false;
-            PlayPauseButton.Content = "▶";
+            PlayPauseButton.Content = GetIcon(PlayIcon);
             _progressTimer.Stop();
             _hideControlsTimer.Stop();
         }
@@ -322,7 +362,7 @@ namespace WpfApp1
         {
             _progressTimer.Stop();
             _isPlaying = false;
-            PlayPauseButton.Content = "▶";
+            PlayPauseButton.Content = GetIcon(PlayIcon);
             ProgressSlider.Value = 0;
             VideoPlayer.Position = TimeSpan.Zero;
             ShowControls();
@@ -390,7 +430,16 @@ namespace WpfApp1
         {
             var volumePercent = VolumeSlider.Value;
             VolumePercentText.Text = $"{(int)volumePercent}%";
-            VolumeIcon.Text = volumePercent == 0 ? "🔇" : "🔊";
+            
+            if (volumePercent == 0)
+                VolumeIcon.Content = GetIcon(VolumeMuteIcon, true);
+            else if (volumePercent < 33)
+                VolumeIcon.Content = GetIcon(VolumeLowIcon, true);
+            else if (volumePercent < 67)
+                VolumeIcon.Content = GetIcon(VolumeMediumIcon, true);
+            else
+                VolumeIcon.Content = GetIcon(VolumeHighIcon, true);
+
             VideoPlayer.Volume = volumePercent / 100.0;
             if (volumePercent > 0) _previousVolume = volumePercent;
             ShowControls();
