@@ -65,43 +65,22 @@ namespace WpfApp1
                 return;
             }
 
-            // ── Theme resolution ──
-            try
-            {
-                using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(5) };
-                var json = await http.GetStringAsync($"{ApiBaseUrl}/tenants/resolve/18");
-
-                var doc = JsonDocument.Parse(json);
-                var data = doc.RootElement.GetProperty("data");
-                var modeDefault = data.GetProperty("modeDefault").GetString() ?? "light";
-
-                var varsKey = modeDefault == "dark" ? "cssVarsDark" : "cssVars";
-                var cssVars = data.GetProperty(varsKey)
-                                  .EnumerateObject()
-                                  .ToDictionary(p => p.Name, p => p.Value.GetString() ?? "");
-
-                ThemeService.Apply(cssVars, modeDefault);
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine(">>> Theme fetch failed: " + ex.Message);
-            }
-
             // ── Create window ──
             var window = new MainWindow();
-            ThemeService.ApplyToWindow(window);
-
+            
+            // Note: Theme will be applied after token resolution to avoid hardcoding tenant IDs
+            
             // ── Token resolution (awaited properly) ──
             if (!string.IsNullOrEmpty(initialToken))
             {
                 window.ShowLoading("Resolving video...");
                 await ResolveAndPlayVideo(window, initialToken);
             }
-
-            window.Show();
-
-            // ── Start listening for tokens from other instances ──
-            StartPipeServer(window);
+            else
+            {
+                // If no token, we can't resolve theme easily, so use default or just show window
+                window.Show();
+            }
         }
 
         protected override void OnExit(ExitEventArgs e)
@@ -166,12 +145,34 @@ namespace WpfApp1
                     var doc = JsonDocument.Parse(json);
                     var data = doc.RootElement.GetProperty("data");
 
-                    var hlsUrl = data.GetProperty("hlsUrl").GetString();
+                    var hlsUrl = data.TryGetProperty("hlsUrl", out var hls) ? hls.GetString() : null;
+                    var mp4Url = data.TryGetProperty("mp4Url", out var mp4) ? mp4.GetString() : null;
                     var title = data.GetProperty("title").GetString() ?? "Secure Video";
 
-                    if (!string.IsNullOrEmpty(hlsUrl))
+                    // Apply theme if provided
+                    if (data.TryGetProperty("theme", out var theme) && theme.ValueKind != JsonValueKind.Null)
                     {
-                        window.OpenRemoteVideo(hlsUrl, title);
+                        try
+                        {
+                            var modeDefault = theme.GetProperty("modeDefault").GetString() ?? "light";
+                            var varsKey = modeDefault == "dark" ? "cssVarsDark" : "cssVars";
+                            var cssVars = theme.GetProperty(varsKey)
+                                              .EnumerateObject()
+                                              .ToDictionary(p => p.Name, p => p.Value.GetString() ?? "");
+
+                            ThemeService.Apply(cssVars, modeDefault);
+                            ThemeService.ApplyToWindow(window);
+                        }
+                        catch { }
+                    }
+
+                    // For VLC (LibVLCSharp), HLS is natively supported and preferred for adaptive streaming.
+                    var playbackUrl = !string.IsNullOrEmpty(hlsUrl) ? hlsUrl : mp4Url;
+
+                    if (!string.IsNullOrEmpty(playbackUrl))
+                    {
+                        window.OpenRemoteVideo(playbackUrl, title);
+                        window.Show(); // Ensure window is visible if it wasn't
                     }
                     else
                     {
